@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# shellcheck source=../lib/errorHandling.sh
+if [[ -n $DEBUG_TEST ]]; then
+    source "$(dirname "$0")/../lib/errorHandling.sh"
+fi
+
+set -e
+debugInfo() {
+    echo "---- $(basename "$0") -----"
+    echo "ARGS: ${*}"
+    echo "--- Available variables ---"
+    while read -r var; do
+        printf "%s=%q\n" "$var" "${!var}"
+    done < <(compgen -v)
+    echo "----------- END -----------"
+}
+createDir() {
+    if [[ ! -d $1 ]]; then
+        mkdir -p "$1" >/dev/null 2>&1
+    fi
+}
+setup() {
+    [[ $DEBUG == 1 ]] && set -x
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+    TESTDIR=${PROJECT_ROOT}/test
+    TEST_HELPER=${TESTDIR}/test_helper
+    TMPDIR=${TESTDIR}/tmp
+    TESTOUT=${TESTDIR}/out
+    TESTREPORT=${TESTDIR}/report
+    BATS_LIB_PATH=${TEST_HELPER}
+    PATH="${TESTDIR}/bats/bin:${PATH}"
+    batsParams=()
+    batsParams+=(--verbose-run)
+    batsParams+=(--trace)
+    batsParams+=(--output "${TESTREPORT}")
+    batsParams+=(--gather-test-outputs-in "$TESTOUT")
+    batsParams+=(--report-formatter junit)
+    batsParams+=(--no-tempdir-cleanup)
+    [[ $DEBUG == 1 ]] && set +x
+    declare -p BATS_LIB_PATH
+    # create dirs
+    createDir "${TMPDIR}"
+    createDir "${TESTOUT}"
+    createDir "${TESTREPORT}"
+
+    # export vars
+    export TMPDIR
+    export PATH
+    export BATS_LIB_PATH
+}
+clean() {
+    rm -f "${TESTOUT:?}"/*
+    rm -rf "${TMPDIR:?}"/*
+}
+locate_tests() {
+
+}
+run_test() {
+    if [[ -d $1 ]]; then
+        # got a directory. search for .bats files in current dir and in ./test[s]
+        
+    fi
+    echo bats "${batsParams[@]}" "${1}"
+    bats "${batsParams[@]}" "${1}"
+}
+runTest_main() {
+    setup
+    # debugInfo "${@}"
+    clean
+    run_test "${@}"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # debugInfo "${@}"
+    runTest_main "${@}"
+fi

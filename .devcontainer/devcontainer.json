@@ -1,0 +1,23 @@
+{
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "mads-hartmann.bash-ide-vscode",
+                "rogalmic.bash-debug",
+                "timonwong.shellcheck",
+                "tetradresearch.vscode-h2o",
+                "foxundermoon.shell-format"
+            ]
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/marcozac/devcontainer-features/shellcheck": {}
+    },
+    "remoteUser": "vscode",
+    "remoteEnv": {
+        "PATH": "${containerWorkspaceFolder}/test/bats/bin:${containerWorkspaceFolder}/bin:${containerEnv:PATH}"
+    },
+     "postStartCommand": "docker start explainshell"
+}

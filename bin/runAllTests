@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+err() {
+    echo >&2 "$@"
+}
+# die() {
+#     err "$@"
+#     exit 1
+# }
+isVarDeclared() {
+    [[ $# -ne 1 ]] && { err "Missing var name"; return 1; }
+    declare -p "$1" >/dev/null 2>&1 
+}
+joinPath() {
+    local IFS=/
+    printf "%s" "${*}"
+}
+# resolvePath(){
+#     [[ $# -ne 2 ]] && { err "Invalid number of arguments"; return 1; }
+#     if [[ -d $1 ]]; then
+#         err "${1}: is not a path"
+#         return 1
+#     fi
+#     if ! isVarDeclared "$2"; then
+#         err "${2}: is not a declared variable"
+#     fi
+#     # echo "${1}" >&2
+#     local -n resolve=$2
+#     if [[ -d $1 ]]; then
+#         resolve=$( cd "${1}" >/dev/null 2>&1 && pwd )
+#         return 0
+#     else
+#         err "$1 is not a valid path"
+#         return 1
+#     fi
+#     # echo "$resolve"
+# }
+resolvePath(){
+    [[ $# -lt 1 ]] && { err "Missing Path or nameRef parameter"; return 1; }
+    resolve() {
+        local joined
+        joined=$(joinPath "${@}")
+        local resolve
+        resolve=$( cd "${joined}" >/dev/null 2>&1 && pwd )
+
+        [[ ! -d $resolve ]] && { err "Path $joined does not exist"; return 1; }
+        printf "%s" "$resolve"
+    }
+    if isVarDeclared "$1" && [[ $# -gt 1 ]]; then
+        echo "Got a nameRef"
+        local -n __="$1"
+        shift
+
+        __=$(resolve "${@}")
+        local rc=$?
+        
+        return $rc
+    else
+        if ! resolve "${@}" ;then
+            return 1
+        fi
+    fi
+}
+
+findAllDists() {
+    declare -A testsArray
+    local _dir
+    local finds
+    finds=$(find "${PROJECT_ROOT}/dist" "${PROJECT_ROOT}/lib" -type f -name "*.bats")
+
+    for test in $finds; do
+        _dir=$(dirname "$test")
+        testsArray["$_dir"]=x
+    done
+    local tmp=("${!testsArray[@]}")
+    # echo "${tmp[@]//test*/}"
+    printf "%s\n" "${tmp[@]//test*/}"
+    # printf "%s\n" "${!testsArray[@]}"
+}
+main() {
+    local dists
+    # echo "${BASH_SOURCE[0]}"
+    # PROJECT_ROOT=$(resolvePath "$(dirname "${BASH_SOURCE[0]}")/..")
+    # echo "${BASH_SOURCE[0]}"
+    PROJECT_ROOT=$(resolvePath "$(dirname "${BASH_SOURCE[0]}")" ..)
+    # echo "$PROJECT_ROOT"
+    # findAllDists
+    dists="$(findAllDists)"
+    for dist in $dists; do
+        echo "running tests for $dist"
+    done
+}
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # t=
+    # resolvePathExtended t "$PWD" bin .. dist rumpa
+    # echo "RC: $?"
+    main
+fi
